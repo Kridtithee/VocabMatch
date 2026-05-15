@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VocabMatch — TGAT / A-Level English</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Noto+Sans+Thai:wght@400;600;700&family=Bebas+Neue&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --surface2: #1c1c28;
+    --border: #2a2a3d;
+    --accent: #7c3aed;
+    --accent2: #06b6d4;
+    --gold: #f59e0b;
+    --danger: #ef4444;
+    --success: #10b981;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --card-h: 88px;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans Thai', 'Space Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ─── BG GRID ─── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(124,58,237,.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(124,58,237,.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none; z-index: 0;
+  }
+
+  /* ─── HEADER ─── */
+  header {
+    position: relative; z-index: 10;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 32px;
+    border-bottom: 1px solid var(--border);
+    backdrop-filter: blur(10px);
+    background: rgba(10,10,15,.8);
+  }
+  .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2rem; letter-spacing: 3px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .logo span { color: var(--gold); -webkit-text-fill-color: var(--gold); }
+  .hud {
+    display: flex; gap: 20px; align-items: center;
+  }
+  .hud-item {
+    display: flex; flex-direction: column; align-items: center;
+    font-family: 'Space Mono', monospace;
+  }
+  .hud-label { font-size: .6rem; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; }
+  .hud-val { font-size: 1.1rem; font-weight: 700; color: var(--accent2); }
+  .hud-sep { width: 1px; height: 36px; background: var(--border); }
+
+  /* ─── MAIN ─── */
+  main {
+    position: relative; z-index: 5;
+    max-width: 900px; margin: 0 auto;
+    padding: 28px 20px 60px;
+  }
+
+  /* ─── LEVEL STRIP ─── */
+  .level-strip {
+    display: flex; align-items: center; gap: 14px;
+    margin-bottom: 22px;
+  }
+  .level-badge {
+    font-family: 'Bebas Neue', sans-serif; font-size: 1rem;
+    letter-spacing: 2px; color: var(--bg);
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    padding: 4px 14px; border-radius: 4px;
+  }
+  .level-title { font-size: .85rem; color: var(--muted); letter-spacing: 1px; }
+  .progress-bar-wrap {
+    flex: 1; height: 6px;
+    background: var(--surface2); border-radius: 99px; overflow: hidden;
+  }
+  .progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 99px;
+    transition: width .5s ease;
+  }
+
+  /* ─── BOARD ─── */
+  .board {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+  }
+
+  /* ─── CARD ─── */
+  .card {
+    height: var(--card-h);
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    text-align: center;
+    padding: 10px;
+    user-select: none;
+    position: relative;
+    transition: transform .12s, border-color .15s, background .15s, box-shadow .15s;
+    overflow: hidden;
+  }
+  .card::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(135deg, transparent 60%, rgba(124,58,237,.08));
+    pointer-events: none;
+  }
+  .card:hover {
+    transform: translateY(-2px);
+    border-color: var(--accent);
+    box-shadow: 0 0 18px rgba(124,58,237,.25);
+  }
+  .card.selected {
+    border-color: var(--accent2);
+    background: rgba(6,182,212,.12);
+    box-shadow: 0 0 22px rgba(6,182,212,.35);
+    transform: scale(1.03);
+  }
+  .card.matched {
+    animation: matchPop .45s forwards;
+  }
+  .card.wrong {
+    animation: shake .35s;
+    border-color: var(--danger);
+    background: rgba(239,68,68,.1);
+  }
+  .card.hidden { visibility: hidden; pointer-events: none; }
+
+  .card-text {
+    font-size: .82rem;
+    font-weight: 600;
+    line-height: 1.35;
+    color: var(--text);
+  }
+  .card.english .card-text { font-family: 'Space Mono', monospace; font-size: .78rem; }
+  .card.thai .card-text { font-family: 'Noto Sans Thai', sans-serif; font-size: .82rem; }
+
+  @keyframes matchPop {
+    0%   { transform: scale(1.05); opacity: 1; }
+    40%  { transform: scale(1.15); opacity: .7; border-color: var(--success); box-shadow: 0 0 30px rgba(16,185,129,.5); }
+    100% { transform: scale(0); opacity: 0; }
+  }
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    20%     { transform: translateX(-7px); }
+    60%     { transform: translateX(7px); }
+  }
+
+  /* ─── WIN OVERLAY ─── */
+  .overlay {
+    position: fixed; inset: 0; z-index: 100;
+    background: rgba(10,10,15,.85);
+    backdrop-filter: blur(8px);
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none;
+    transition: opacity .3s;
+  }
+  .overlay.show { opacity: 1; pointer-events: all; }
+  .win-box {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 44px 52px;
+    text-align: center;
+    max-width: 400px;
+    position: relative;
+  }
+  .win-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 3.2rem; letter-spacing: 4px;
+    background: linear-gradient(135deg, var(--gold), #fbbf24);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .win-sub { color: var(--muted); font-size: .85rem; margin: 8px 0 28px; }
+  .win-stats { display: flex; gap: 24px; justify-content: center; margin-bottom: 28px; }
+  .win-stat { text-align: center; }
+  .win-stat-n { font-size: 2rem; font-weight: 700; font-family: 'Space Mono'; color: var(--accent2); }
+  .win-stat-l { font-size: .65rem; color: var(--muted); letter-spacing: 1.5px; text-transform: uppercase; }
+
+  .btn {
+    display: inline-block;
+    font-family: 'Bebas Neue', sans-serif; font-size: 1.1rem; letter-spacing: 3px;
+    padding: 12px 36px; border-radius: 8px; border: none; cursor: pointer;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: #fff;
+    transition: transform .12s, box-shadow .12s;
+  }
+  .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(124,58,237,.4); }
+  .btn:active { transform: scale(.97); }
+
+  /* ─── CONFETTI ─── */
+  .confetti-piece {
+    position: fixed; top: -10px;
+    width: 8px; height: 8px;
+    border-radius: 2px;
+    animation: confettiFall linear forwards;
+    pointer-events: none; z-index: 200;
+  }
+  @keyframes confettiFall {
+    0%   { transform: translateY(0) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+  }
+
+  /* ─── FEEDBACK TOAST ─── */
+  .toast {
+    position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 22px;
+    font-size: .82rem; color: var(--muted);
+    opacity: 0; transition: opacity .25s;
+    z-index: 50; pointer-events: none; white-space: nowrap;
+  }
+  .toast.show { opacity: 1; }
+  .toast.ok { border-color: var(--success); color: var(--success); }
+  .toast.err { border-color: var(--danger); color: var(--danger); }
+
+  /* mobile */
+  @media(max-width: 600px) {
+    :root { --card-h: 72px; }
+    header { padding: 12px 16px; }
+    .logo { font-size: 1.5rem; }
+    main { padding: 16px 12px 60px; }
+    .board { gap: 8px; }
+    .card-text { font-size: .72rem; }
+    .win-box { padding: 32px 28px; margin: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Vocab<span>Match</span></div>
+  <div class="hud">
+    <div class="hud-item">
+      <span class="hud-label">Score</span>
+      <span class="hud-val" id="score">0</span>
+    </div>
+    <div class="hud-sep"></div>
+    <div class="hud-item">
+      <span class="hud-label">Streak</span>
+      <span class="hud-val" id="streak">🔥 0</span>
+    </div>
+    <div class="hud-sep"></div>
+    <div class="hud-item">
+      <span class="hud-label">Mistakes</span>
+      <span class="hud-val" id="mistakes">0</span>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="level-strip">
+    <div class="level-badge" id="level-badge">LV 1</div>
+    <div class="level-title" id="level-title">Academic Vocabulary</div>
+    <div class="progress-bar-wrap">
+      <div class="progress-bar" id="progress-bar" style="width:0%"></div>
+    </div>
+  </div>
+  <div class="board" id="board"></div>
+</main>
+
+<div class="overlay" id="overlay">
+  <div class="win-box">
+    <div class="win-title">CLEARED!</div>
+    <div class="win-sub" id="win-sub">Level 1 Complete</div>
+    <div class="win-stats">
+      <div class="win-stat">
+        <div class="win-stat-n" id="wstat-score">0</div>
+        <div class="win-stat-l">Score</div>
+      </div>
+      <div class="win-stat">
+        <div class="win-stat-n" id="wstat-mistakes">0</div>
+        <div class="win-stat-l">Mistakes</div>
+      </div>
+    </div>
+    <button class="btn" onclick="nextLevel()">NEXT LEVEL →</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─────────────────────────────────────────────
+//  VOCABULARY BANK  (TGAT / A-Level English)
+// ─────────────────────────────────────────────
+const VOCAB_BANK = [
+  // ── Academic & Critical Thinking ──
+  { en:"Ambiguous",     th:"มีความหมายไม่ชัดเจน" },
+  { en:"Analogy",       th:"การเปรียบเทียบ" },
+  { en:"Analyze",       th:"วิเคราะห์" },
+  { en:"Advocate",      th:"สนับสนุน / ผู้สนับสนุน" },
+  { en:"Assess",        th:"ประเมิน" },
+  { en:"Assumption",    th:"การสมมติฐาน" },
+  { en:"Bias",          th:"อคติ" },
+  { en:"Clarify",       th:"ชี้แจง" },
+  { en:"Coherent",      th:"เชื่อมโยงกันอย่างสมเหตุสมผล" },
+  { en:"Concept",       th:"แนวคิด" },
+  { en:"Conclusion",    th:"บทสรุป" },
+  { en:"Context",       th:"บริบท" },
+  { en:"Contradict",    th:"ขัดแย้ง" },
+  { en:"Criteria",      th:"เกณฑ์" },
+  { en:"Deduce",        th:"สรุปหาเหตุผล" },
+  { en:"Elaborate",     th:"อธิบายอย่างละเอียด" },
+  { en:"Emphasize",     th:"เน้น / ให้ความสำคัญ" },
+  { en:"Evidence",      th:"หลักฐาน" },
+  { en:"Explicit",      th:"ชัดเจน / ตรงไปตรงมา" },
+  { en:"Generalize",    th:"สรุปอย่างกว้างๆ" },
+  { en:"Hypothesis",    th:"สมมติฐาน" },
+  { en:"Imply",         th:"บอกเป็นนัย" },
+  { en:"Infer",         th:"อนุมาน" },
+  { en:"Interpret",     th:"ตีความ" },
+  { en:"Justify",       th:"อ้างเหตุผล" },
+  { en:"Logic",         th:"ตรรกะ" },
+  { en:"Objective",     th:"วัตถุประสงค์ / เป็นกลาง" },
+  { en:"Perspective",   th:"มุมมอง" },
+  { en:"Relevant",      th:"เกี่ยวข้อง" },
+  { en:"Summarize",     th:"สรุป" },
+  { en:"Synthesize",    th:"สังเคราะห์" },
+  { en:"Valid",         th:"มีเหตุผล / ถูกต้อง" },
+
+  // ── Society & Environment ──
+  { en:"Accelerate",    th:"เร่งขึ้น" },
+  { en:"Biodiversity",  th:"ความหลากหลายทางชีวภาพ" },
+  { en:"Capitalism",    th:"ระบบทุนนิยม" },
+  { en:"Carbon",        th:"คาร์บอน" },
+  { en:"Civilization",  th:"อารยธรรม" },
+  { en:"Collaborate",   th:"ร่วมมือ" },
+  { en:"Conflict",      th:"ความขัดแย้ง" },
+  { en:"Conservation",  th:"การอนุรักษ์" },
+  { en:"Crisis",        th:"วิกฤต" },
+  { en:"Culture",       th:"วัฒนธรรม" },
+  { en:"Democracy",     th:"ประชาธิปไตย" },
+  { en:"Discrimination",th:"การเลือกปฏิบัติ" },
+  { en:"Diverse",       th:"หลากหลาย" },
+  { en:"Ecosystem",     th:"ระบบนิเวศ" },
+  { en:"Emission",      th:"การปล่อย (ก๊าซ)" },
+  { en:"Exploit",       th:"ใช้ประโยชน์ / ขูดรีด" },
+  { en:"Globalization", th:"โลกาภิวัตน์" },
+  { en:"Habitat",       th:"ถิ่นที่อยู่" },
+  { en:"Inequality",    th:"ความไม่เท่าเทียม" },
+  { en:"Infrastructure",th:"โครงสร้างพื้นฐาน" },
+  { en:"Migrate",       th:"อพยพ" },
+  { en:"Poverty",       th:"ความยากจน" },
+  { en:"Renewable",     th:"หมุนเวียนได้" },
+  { en:"Sustainable",   th:"ยั่งยืน" },
+  { en:"Urbanize",      th:"กลายเป็นเมือง" },
+
+  // ── Science & Technology ──
+  { en:"Algorithm",     th:"ขั้นตอนวิธี" },
+  { en:"Artificial",    th:"เทียม / ประดิษฐ์" },
+  { en:"Automate",      th:"ทำให้อัตโนมัติ" },
+  { en:"Innovate",      th:"คิดค้นสิ่งใหม่" },
+  { en:"Mechanism",     th:"กลไก" },
+  { en:"Modify",        th:"ดัดแปลง" },
+  { en:"Phenomenon",    th:"ปรากฏการณ์" },
+  { en:"Prototype",     th:"ต้นแบบ" },
+  { en:"Simulate",      th:"จำลอง" },
+  { en:"Technology",    th:"เทคโนโลยี" },
+
+  // ── Descriptive / Vocabulary Range ──
+  { en:"Abundant",      th:"อุดมสมบูรณ์" },
+  { en:"Adequate",      th:"เพียงพอ" },
+  { en:"Ambivalent",    th:"รู้สึกขัดแย้งในใจ" },
+  { en:"Apprehensive",  th:"วิตกกังวล" },
+  { en:"Benevolent",    th:"มีจิตใจดี" },
+  { en:"Bewildered",    th:"งุนงง" },
+  { en:"Candid",        th:"ตรงไปตรงมา" },
+  { en:"Cautious",      th:"ระมัดระวัง" },
+  { en:"Chronic",       th:"เรื้อรัง" },
+  { en:"Colossal",      th:"มหึมา" },
+  { en:"Compassion",    th:"ความเมตตา" },
+  { en:"Competent",     th:"มีความสามารถ" },
+  { en:"Concise",       th:"กระชับ" },
+  { en:"Crucial",       th:"สำคัญอย่างยิ่ง" },
+  { en:"Cynical",       th:"ไม่ไว้วางใจ / ถากถาง" },
+  { en:"Deteriorate",   th:"เสื่อมลง" },
+  { en:"Diligent",      th:"ขยันหมั่นเพียร" },
+  { en:"Diminish",      th:"ลดลง" },
+  { en:"Eloquent",      th:"มีวาทศิลป์" },
+  { en:"Enormous",      th:"มหาศาล" },
+  { en:"Exaggerate",    th:"พูดเกินจริง" },
+  { en:"Facilitate",    th:"อำนวยความสะดวก" },
+  { en:"Feasible",      th:"เป็นไปได้" },
+  { en:"Flexible",      th:"ยืดหยุ่น" },
+  { en:"Fluctuate",     th:"ขึ้นๆ ลงๆ" },
+  { en:"Fragile",       th:"เปราะบาง" },
+  { en:"Genuine",       th:"แท้จริง" },
+  { en:"Gradual",       th:"ค่อยเป็นค่อยไป" },
+  { en:"Hardship",      th:"ความยากลำบาก" },
+  { en:"Hesitate",      th:"ลังเล" },
+  { en:"Hostile",       th:"เป็นปฏิปักษ์" },
+  { en:"Humility",      th:"ความถ่อมตน" },
+  { en:"Ignorant",      th:"โง่เขลา / ขาดความรู้" },
+  { en:"Indifferent",   th:"เฉยเมย" },
+  { en:"Inevitable",    th:"หลีกเลี่ยงไม่ได้" },
+  { en:"Influence",     th:"อิทธิพล" },
+  { en:"Insignificant", th:"ไม่สำคัญ" },
+  { en:"Intricate",     th:"ซับซ้อนละเอียด" },
+  { en:"Irony",         th:"การประชด" },
+  { en:"Isolation",     th:"การแยกตัว" },
+  { en:"Legitimate",    th:"ถูกกฎหมาย / ชอบธรรม" },
+  { en:"Manipulate",    th:"บงการ" },
+  { en:"Mediocre",      th:"ธรรมดา / ปานกลาง" },
+  { en:"Meticulous",    th:"พิถีพิถัน" },
+  { en:"Minimize",      th:"ลดให้น้อยที่สุด" },
+  { en:"Misconception", th:"ความเข้าใจผิด" },
+  { en:"Monotonous",    th:"น่าเบื่อ / ซ้ำซาก" },
+  { en:"Naive",         th:"ไร้เดียงสา" },
+  { en:"Negligent",     th:"ประมาทเลินเล่อ" },
+  { en:"Nostalgia",     th:"ความคิดถึงอดีต" },
+  { en:"Obstacle",      th:"อุปสรรค" },
+  { en:"Optimistic",    th:"มองโลกในแง่ดี" },
+  { en:"Overwhelm",     th:"ท่วมท้น / รับมือไม่ไหว" },
+  { en:"Paradox",       th:"ความขัดแย้งที่ดูจริง" },
+  { en:"Perceive",      th:"รับรู้ / มองเห็น" },
+  { en:"Persistent",    th:"ยืนหยัด" },
+  { en:"Pessimistic",   th:"มองโลกในแง่ร้าย" },
+  { en:"Plausible",     th:"น่าเชื่อถือ" },
+  { en:"Predominant",   th:"มีอำนาจเหนือ" },
+  { en:"Preliminary",   th:"เบื้องต้น" },
+  { en:"Privilege",     th:"สิทธิพิเศษ" },
+  { en:"Profound",      th:"ลึกซึ้ง" },
+  { en:"Prominent",     th:"โดดเด่น" },
+  { en:"Provoke",       th:"ยั่วยุ" },
+  { en:"Rational",      th:"มีเหตุมีผล" },
+  { en:"Reluctant",     th:"ไม่เต็มใจ" },
+  { en:"Resilient",     th:"ฟื้นตัวได้ดี" },
+  { en:"Rigid",         th:"แข็งทื่อ / เคร่งครัด" },
+  { en:"Scarce",        th:"ขาดแคลน" },
+  { en:"Skeptical",     th:"สงสัย / ไม่ค่อยเชื่อ" },
+  { en:"Speculation",   th:"การคาดเดา" },
+  { en:"Stereotype",    th:"อคติแบบแผน" },
+  { en:"Stimulate",     th:"กระตุ้น" },
+  { en:"Subjective",    th:"เชิงอัตวิสัย / ส่วนตัว" },
+  { en:"Subtle",        th:"ละเอียดอ่อน / ไม่ชัดเจน" },
+  { en:"Superficial",   th:"ผิวเผิน" },
+  { en:"Suppress",      th:"ปราบปราม / กดขี่" },
+  { en:"Tactic",        th:"กลยุทธ์" },
+  { en:"Tempt",         th:"ล่อลวง" },
+  { en:"Tenacious",     th:"เหนียวแน่น" },
+  { en:"Tolerate",      th:"ยอมรับ / อดทน" },
+  { en:"Transparent",   th:"โปร่งใส" },
+  { en:"Trivial",       th:"ไม่สำคัญ / เล็กน้อย" },
+  { en:"Undermine",     th:"บ่อนทำลาย" },
+  { en:"Unprecedented", th:"ไม่เคยมีมาก่อน" },
+  { en:"Utilize",       th:"ใช้ประโยชน์" },
+  { en:"Versatile",     th:"อเนกประสงค์" },
+  { en:"Vulnerable",    th:"เปราะบาง / อ่อนแอ" },
+  { en:"Wary",          th:"ระวัง / ตื่นตัว" },
+  { en:"Withstand",     th:"ทนทาน" },
+
+  // ── Reading / Comprehension Terms ──
+  { en:"Passage",       th:"ข้อความ / ย่อหน้า" },
+  { en:"Paragraph",     th:"วรรคตอน" },
+  { en:"Metaphor",      th:"อุปมาโดยตรง" },
+  { en:"Simile",        th:"อุปมาอุปมัย" },
+  { en:"Synonym",       th:"คำพ้องความหมาย" },
+  { en:"Antonym",       th:"คำตรงข้าม" },
+  { en:"Tone",          th:"น้ำเสียง / ลีลา" },
+  { en:"Theme",         th:"ธีม / แก่นเรื่อง" },
+  { en:"Purpose",       th:"จุดประสงค์" },
+  { en:"Narrative",     th:"เรื่องเล่า" },
+];
+
+// ─────────────────────────────────────────────
+//  LEVEL CONFIG
+// ─────────────────────────────────────────────
+const LEVEL_THEMES = [
+  "Academic Vocabulary",
+  "Society & Environment",
+  "Critical Thinking",
+  "Science & Tech",
+  "Descriptive Language",
+  "Reading Comprehension",
+  "Advanced Usage",
+  "Mixed Challenge",
+];
+
+const PAIRS_PER_LEVEL = 6; // 6 pairs → 12 cards (4×3)
+
+let state = {
+  level: 1,
+  score: 0,
+  mistakes: 0,
+  streak: 0,
+  pool: [],          // remaining vocab not yet used
+  levelPairs: [],    // 6 pairs this level
+  selected: null,    // {el, type, index}
+  matched: 0,
+  locked: false,
+};
+
+// ─────────────────────────────────────────────
+//  SHUFFLE
+// ─────────────────────────────────────────────
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// ─────────────────────────────────────────────
+//  INIT / START LEVEL
+// ─────────────────────────────────────────────
+function startGame() {
+  state.pool = shuffle([...VOCAB_BANK]);
+  state.level = 1;
+  state.score = 0;
+  state.mistakes = 0;
+  state.streak = 0;
+  updateHUD();
+  startLevel();
+}
+
+function startLevel() {
+  state.matched = 0;
+  state.selected = null;
+  state.locked = false;
+
+  // refill pool if needed
+  if (state.pool.length < PAIRS_PER_LEVEL) {
+    state.pool = shuffle([...VOCAB_BANK]);
+  }
+
+  state.levelPairs = state.pool.splice(0, PAIRS_PER_LEVEL);
+
+  // update level strip
+  const badge = document.getElementById('level-badge');
+  const title = document.getElementById('level-title');
+  badge.textContent = `LV ${state.level}`;
+  title.textContent = LEVEL_THEMES[(state.level - 1) % LEVEL_THEMES.length];
+  document.getElementById('progress-bar').style.width = '0%';
+
+  renderBoard();
+}
+
+// ─────────────────────────────────────────────
+//  RENDER BOARD
+// ─────────────────────────────────────────────
+function renderBoard() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+
+  // build 12 card data
+  const cards = [];
+  state.levelPairs.forEach((pair, i) => {
+    cards.push({ type: 'english', index: i, text: pair.en });
+    cards.push({ type: 'thai',    index: i, text: pair.th });
+  });
+  shuffle(cards);
+
+  cards.forEach(card => {
+    const el = document.createElement('div');
+    el.className = `card ${card.type}`;
+    el.dataset.index = card.index;
+    el.dataset.type = card.type;
+    el.innerHTML = `<span class="card-text">${card.text}</span>`;
+    el.addEventListener('click', () => onCardClick(el, card));
+    board.appendChild(el);
+  });
+}
+
+// ─────────────────────────────────────────────
+//  CARD CLICK
+// ─────────────────────────────────────────────
+function onCardClick(el, card) {
+  if (state.locked) return;
+  if (el.classList.contains('hidden')) return;
+  if (state.selected && state.selected.el === el) return;
+
+  el.classList.add('selected');
+
+  if (!state.selected) {
+    state.selected = { el, ...card };
+    return;
+  }
+
+  const first = state.selected;
+
+  // Must be different types (english ↔ thai)
+  if (first.type === card.type) {
+    first.el.classList.remove('selected');
+    state.selected = { el, ...card };
+    return;
+  }
+
+  // Check match
+  if (first.index === card.index) {
+    // MATCH ✅
+    state.matched++;
+    state.score += 100 + state.streak * 10;
+    state.streak++;
+    updateHUD();
+    updateProgress();
+
+    first.el.classList.remove('selected');
+    el.classList.remove('selected');
+    first.el.classList.add('matched');
+    el.classList.add('matched');
+
+    setTimeout(() => {
+      first.el.classList.add('hidden');
+      el.classList.add('hidden');
+    }, 420);
+
+    showToast(`+${100 + (state.streak - 1) * 10} pts${state.streak > 1 ? `  🔥×${state.streak}` : ''}`, 'ok');
+
+    state.selected = null;
+
+    if (state.matched === PAIRS_PER_LEVEL) {
+      setTimeout(showWin, 600);
+    }
+  } else {
+    // WRONG ❌
+    state.locked = true;
+    state.mistakes++;
+    state.streak = 0;
+    updateHUD();
+
+    first.el.classList.add('wrong');
+    el.classList.add('wrong');
+
+    showToast('ลองใหม่! ❌', 'err');
+
+    setTimeout(() => {
+      first.el.classList.remove('selected', 'wrong');
+      el.classList.remove('selected', 'wrong');
+      state.selected = null;
+      state.locked = false;
+    }, 500);
+  }
+}
+
+// ─────────────────────────────────────────────
+//  HUD
+// ─────────────────────────────────────────────
+function updateHUD() {
+  document.getElementById('score').textContent = state.score;
+  document.getElementById('streak').textContent = `🔥 ${state.streak}`;
+  document.getElementById('mistakes').textContent = state.mistakes;
+}
+
+function updateProgress() {
+  const pct = (state.matched / PAIRS_PER_LEVEL) * 100;
+  document.getElementById('progress-bar').style.width = pct + '%';
+}
+
+// ─────────────────────────────────────────────
+//  TOAST
+// ─────────────────────────────────────────────
+let toastTimer;
+function showToast(msg, cls = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + cls;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.className = 'toast', 1600);
+}
+
+// ─────────────────────────────────────────────
+//  WIN
+// ─────────────────────────────────────────────
+function showWin() {
+  document.getElementById('win-sub').textContent = `Level ${state.level} Complete!`;
+  document.getElementById('wstat-score').textContent = state.score;
+  document.getElementById('wstat-mistakes').textContent = state.mistakes;
+  document.getElementById('overlay').classList.add('show');
+  spawnConfetti();
+}
+
+function nextLevel() {
+  document.getElementById('overlay').classList.remove('show');
+  state.level++;
+  startLevel();
+}
+
+// ─────────────────────────────────────────────
+//  CONFETTI
+// ─────────────────────────────────────────────
+function spawnConfetti() {
+  const colors = ['#7c3aed','#06b6d4','#f59e0b','#10b981','#ef4444','#ec4899'];
+  for (let i = 0; i < 60; i++) {
+    const el = document.createElement('div');
+    el.className = 'confetti-piece';
+    el.style.left = Math.random() * 100 + 'vw';
+    el.style.background = colors[Math.floor(Math.random() * colors.length)];
+    el.style.animationDuration = (1.5 + Math.random() * 2) + 's';
+    el.style.animationDelay = Math.random() * .8 + 's';
+    el.style.width = (6 + Math.random() * 8) + 'px';
+    el.style.height = (6 + Math.random() * 8) + 'px';
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 4000);
+  }
+}
+
+// ─────────────────────────────────────────────
+//  START
+// ─────────────────────────────────────────────
+startGame();
+</script>
+</body>
+</html>
