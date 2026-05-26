@@ -121,7 +121,7 @@ const VOCAB_BANK = [
 { en:"Abandon", th:"ละทิ้ง", ex:"They abandoned the old house.", ex_th:"พวกเขาละทิ้งบ้านหลังเก่า" },
 { en:"Betray", th:"ทรยศ", ex:"He betrayed his friend's trust.", ex_th:"เขาทรยศต่อความไว้ใจของเพื่อน" },
 { en:"Collapse", th:"ทรุดตัว", ex:"The bridge collapsed in the storm.", ex_th:"สะพานทรุดตัวลงในพายุ" },
-{ en:"Cccur", th:"เกิดขึ้น", ex:"Accidents often occur at this intersection.", ex_th:"อุบัติเหตุมักเกิดขึ้นที่ทางแยกนี้" },
+{ en:"Occur", th:"เกิดขึ้น", ex:"Accidents often occur at this intersection.", ex_th:"อุบัติเหตุมักเกิดขึ้นที่ทางแยกนี้" },
 { en:"Encounter", th:"การพบกัน", ex:"We had a brief encounter.", ex_th:"เรามีการพบกันสั้นๆ" },
 { en:"Combination", th:"การผสมผสาน", ex:"The dish is a combination of flavors.", ex_th:"จานนี้คือการผสมผสานของรสชาติ" },
 { en:"Reputation", th:"ชื่อเสียง", ex:"The company has a good reputation.", ex_th:"บริษัทมีชื่อเสียงดี" },
