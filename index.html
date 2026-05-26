@@ -10,11 +10,11 @@
   <header>
     <div class="logo">Vocab<span>Match</span></div>
     <div class="tabs">
-      <button class="tab active" data-tab="game">🎮 เกมจับคู่</button>
+      <button class="tab active" data-tab="game">🎮 จับคู่</button>
+      <button class="tab" data-tab="fillblank">✍️ เติมคำ</button>
       <button class="tab" data-tab="vocab">📘 ตารางศัพท์</button>
     </div>
-    <div class="hud">
-      <!-- เอา Score ออกแล้ว เหลือแค่ Streak กับ Mistakes -->
+    <div class="hud" id="hud">
       <div class="hud-item">
         <span class="hud-label">Streak</span>
         <span class="hud-val" id="streak">🔥 0</span>
@@ -27,7 +27,7 @@
   </header>
 
   <main>
-    <!-- ส่วนของเกม -->
+    <!-- ส่วนของเกมจับคู่ -->
     <section id="game-section">
       <div class="level-strip">
         <div class="level-badge" id="level-badge">LV 1</div>
@@ -38,6 +38,23 @@
       </div>
       <div class="board" id="board"></div>
     </section>
+
+ <!-- ส่วนของเกมเติมคำ (Multiple Choice) -->
+<section id="fillblank-section" style="display: none;">
+  <div class="fb-container">
+    <div class="fb-card">
+      <div class="fb-progress">
+        <span>✍️ เติมคำในช่องว่าง</span>
+        <span class="fb-counter" id="fb-counter">1 / 30</span>
+      </div>
+      <div class="fb-sentence" id="fb-sentence">Loading...</div>
+      <div class="fb-choices" id="fb-choices"></div>
+      <div class="fb-feedback" id="fb-feedback"></div>
+      <div class="fb-hint" id="fb-hint"></div>
+      <button class="fb-next-btn" id="fb-next" style="display:none;">ข้อถัดไป →</button>
+    </div>
+  </div>
+</section>
 
     <!-- ส่วนตารางศัพท์ -->
     <section id="vocab-section" style="display: none;">
@@ -67,7 +84,6 @@
       <div class="win-title">🎉 CLEARED!</div>
       <div class="win-sub" id="win-sub">Level 1 Complete</div>
       <div class="win-stats">
-        <!-- เหลือแค่ Mistakes -->
         <div class="win-stat">
           <div class="win-stat-n" id="wstat-mistakes">0</div>
           <div class="win-stat-l">Mistakes</div>
@@ -80,17 +96,25 @@
 
   <script src="js/vocab-data.js"></script>
   <script src="js/game.js"></script>
+  <script src="js/fill-blank.js"></script>
   <script src="js/table.js"></script>
   <script>
-    // สลับแท็บและเริ่มต้น
+    // สลับแท็บ
     document.querySelectorAll('.tab').forEach(btn => {
       btn.addEventListener('click', () => {
         document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         const tab = btn.dataset.tab;
         document.getElementById('game-section').style.display = tab === 'game' ? 'block' : 'none';
+        document.getElementById('fillblank-section').style.display = tab === 'fillblank' ? 'block' : 'none';
         document.getElementById('vocab-section').style.display = tab === 'vocab' ? 'block' : 'none';
+        
+        // ซ่อน HUD เมื่ออยู่แท็บตารางศัพท์
+        document.getElementById('hud').style.display = tab === 'vocab' ? 'none' : 'flex';
+        
         if (tab === 'vocab') initTableTab();
+        if (tab === 'fillblank') initFillBlank();
+        if (tab === 'game') startGame();
       });
     });
 
